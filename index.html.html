@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>로아 계산기</title>
+<style>
+  /* ── TDS Mobile 토큰 ───────────────────────────────────────── */
+  :root {
+    /* Colors */
+    --grey50:  #f9fafb;
+    --grey100: #f2f4f6;
+    --grey200: #e5e8eb;
+    --grey300: #d1d6db;
+    --grey400: #b0b8c1;
+    --grey500: #8b95a1;
+    --grey600: #6b7684;
+    --grey700: #4e5968;
+    --grey800: #333d4b;
+    --grey900: #191f28;
+    --blue500:  #3182f6;
+    --blue600:  #2272eb;
+    --red500:   #f04452;
+    --green400: #15c47e;
+    --green500: #03b26c;
+    --orange500:#fe9800;
+
+    /* Semantic */
+    --bg:       #ffffff;
+    --bg-grey:  #f2f4f6;
+    --surface:  #ffffff;
+    --border:   #e5e8eb;
+    --primary:  #3182f6;
+    --primary-weak-bg: #e8f3ff;
+
+    /* Typography (px → rem 기준) */
+    --text-heading1: 22px; --lh-heading1: 31px; /* Typography 3 */
+    --text-heading2: 20px; --lh-heading2: 29px; /* Typography 4 */
+    --text-body1:    17px; --lh-body1:    25.5px; /* Typography 5 */
+    --text-body2:    15px; --lh-body2:    22.5px; /* Typography 6 */
+    --text-label:    13px; --lh-label:    19.5px; /* Typography 7 */
+    --text-caption:  12px; --lh-caption:  18px;   /* sub Typography 12 */
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-grey);
+    color: var(--grey900);
+    font-family: -apple-system, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+    font-size: var(--text-body2);
+    line-height: var(--lh-body2);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 최상단 앱바 (Top) ─────────────────────────────────────── */
+  .top-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+    height: 56px;
+    display: flex; align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .top-bar-title {
+    font-size: var(--text-body1);
+    font-weight: 700;
+    color: var(--grey900);
+    line-height: var(--lh-body1);
+  }
+
+  /* ── 스크롤 영역 ─────────────────────────────────────────────── */
+  .scroll-area {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 120px;
+  }
+
+  /* ── 섹션 구분 (List Header) ────────────────────────────────── */
+  .list-header {
+    padding: 24px 20px 8px;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    color: var(--grey600);
+    line-height: var(--lh-caption);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── 카드 (Surface) ─────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    margin: 0 0 8px;
+  }
+
+  /* ── ListRow ─────────────────────────────────────────────────── */
+  .list-row {
+    display: flex;
+    align-items: center;
+    min-height: 60px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--grey100);
+    gap: 12px;
+    position: relative;
+  }
+  .list-row:last-child { border-bottom: none; }
+
+  .list-row-contents {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .list-row-top {
+    font-size: var(--text-body2);
+    font-weight: 500;
+    color: var(--grey900);
+    line-height: var(--lh-body2);
+  }
+  .list-row-bottom {
+    font-size: var(--text-label);
+    color: var(--grey600);
+    line-height: var(--lh-label);
+  }
+  .list-row-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── Badge ──────────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .badge-blue   { background: var(--primary-weak-bg); color: var(--blue600); }
+  .badge-green  { background: #f0faf6; color: var(--green500); }
+  .badge-orange { background: #fff3e0; color: var(--orange500); }
+  .badge-grey   { background: var(--grey100); color: var(--grey600); }
+
+  /* ── TextField ───────────────────────────────────────────────── */
+  .tds-input {
+    background: var(--grey100);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: var(--text-body2);
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--grey900);
+    outline: none;
+    width: 100%;
+    text-align: right;
+    transition: background 0.15s;
+    -moz-appearance: textfield;
+    line-height: var(--lh-body2);
+  }
+  .tds-input::-webkit-outer-spin-button,
+  .tds-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .tds-input:focus { background: #eaf2ff; }
+  .tds-input::placeholder { color: var(--grey400); font-weight: 400; }
+  .tds-input.w-sm { width: 90px; }
+  .tds-input.w-md { width: 110px; }
+  .tds-input.w-lg { width: 140px; }
+
+  /* password 인풋 */
+  .tds-input-pw {
+    background: var(--grey100);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: var(--text-body2);
+    font-family: monospace;
+    color: var(--grey900);
+    outline: none;
+    width: 100%;
+    transition: background 0.15s;
+    line-height: var(--lh-body2);
+  }
+  .tds-input-pw:focus { background: #eaf2ff; }
+  .tds-input-pw::placeholder { color: var(--grey400); font-weight: 400; font-family: inherit; }
+
+  .tds-input-text {
+    background: var(--grey100);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: var(--text-label);
+    font-family: inherit;
+    color: var(--grey900);
+    outline: none;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .tds-input-text:focus { background: #eaf2ff; }
+
+  .input-unit {
+    font-size: var(--text-label);
+    color: var(--grey500);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Button ─────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.12s, background 0.12s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* Primary */
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--blue600); }
+
+  /* Primary Weak */
+  .btn-primary-weak { background: var(--primary-weak-bg); color: var(--primary); }
+
+  /* Secondary (grey) */
+  .btn-secondary { background: var(--grey100); color: var(--grey800); }
+  .btn-secondary:hover { background: var(--grey200); }
+
+  /* Size */
+  .btn-sm { height: 34px; padding: 0 14px; font-size: var(--text-label); border-radius: 8px; }
+  .btn-md { height: 42px; padding: 0 18px; font-size: var(--text-body2); }
+  .btn-full { width: 100%; height: 52px; font-size: var(--text-body1); border-radius: 14px; }
+
+  /* 스핀 */
+  .spin { display: inline-block; }
+  .fetching .spin { animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── API 키 패널 ─────────────────────────────────────────────── */
+  .api-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 60px;
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--surface);
+    border-bottom: 1px solid var(--grey100);
+  }
+  .api-left { display: flex; align-items: center; gap: 12px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--grey300); flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .status-dot.ok  { background: var(--green400); box-shadow: 0 0 0 3px #f0faf6; }
+  .status-dot.err { background: var(--red500); }
+  .api-label-wrap {}
+  .api-label-title { font-size: var(--text-body2); font-weight: 600; color: var(--grey900); }
+  .api-label-sub   { font-size: var(--text-caption); color: var(--grey500); margin-top: 1px; }
+  .chevron { font-size: 10px; color: var(--grey400); transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+
+  .api-body {
+    display: none;
+    padding: 16px 20px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--grey100);
+  }
+  .api-body.open { display: block; }
+  .api-input-row { display: flex; gap: 8px; }
+  .api-note { font-size: var(--text-caption); color: var(--grey500); margin-top: 10px; line-height: 1.7; }
+  .api-note a { color: var(--primary); text-decoration: none; }
+
+  /* ── 컬럼 헤더 ────────────────────────────────────────────────── */
+  .col-header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 20px 4px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--grey100);
+  }
+  .col-label {
+    font-size: var(--text-caption);
+    color: var(--grey500);
+    font-weight: 600;
+    width: 90px;
+    text-align: center;
+  }
+
+  /* ── 결과 영역 ────────────────────────────────────────────────── */
+  .result-hero {
+    background: var(--surface);
+    padding: 28px 20px 24px;
+    border-bottom: 1px solid var(--grey100);
+  }
+  .result-hero-label {
+    font-size: var(--text-caption);
+    color: var(--grey500);
+    margin-bottom: 6px;
+  }
+  .result-hero-amount {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--grey900);
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+  .result-hero-amount.dim { color: var(--grey300); font-size: 24px; font-weight: 700; }
+  .result-hero-sub {
+    font-size: var(--text-caption);
+    color: var(--grey500);
+    margin-top: 5px;
+  }
+
+  /* Table Row */
+  .table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--grey100);
+    background: var(--surface);
+  }
+  .table-row:last-child { border-bottom: none; }
+  .tr-label { font-size: var(--text-body2); color: var(--grey600); }
+  .tr-value { font-size: var(--text-body2); font-weight: 700; color: var(--grey900); }
+  .tr-value.primary { color: var(--primary); }
+  .tr-value.red     { color: var(--red500); }
+  .tr-value.green   { color: var(--green500); }
+  .tr-value.big     { font-size: var(--text-body1); font-weight: 800; }
+
+  /* ── Bottom CTA ──────────────────────────────────────────────── */
+  .bottom-cta {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg);
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--grey100);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ── Error / Toast ───────────────────────────────────────────── */
+  .err-text { font-size: var(--text-caption); color: var(--red500); margin-top: 8px; display: none; line-height: 1.6; white-space: pre-line; }
+  .err-text.show { display: block; }
+
+  .toast {
+    position: fixed; bottom: 88px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--grey800);
+    color: #fff;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: var(--text-label);
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Skeleton (로딩 상태) ────────────────────────────────────── */
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--grey200) 25%, var(--grey100) 50%, var(--grey200) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.2s infinite;
+    height: 16px;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <span class="top-bar-title">로아 계산기</span>
+</div>
+
+<div class="scroll-area">
+
+  <!-- ① API 키 -->
+  <div class="list-header">API 설정</div>
+  <div class="card">
+    <div class="api-toggle" onclick="toggleApi()">
+      <div class="api-left">
+        <div class="status-dot" id="dot"></div>
+        <div class="api-label-wrap">
+          <div class="api-label-title">로아 API 키</div>
+          <div class="api-label-sub" id="api-sub">미설정 · developer-lostark.game.onstove.com</div>
+        </div>
+      </div>
+      <span class="chevron" id="chev">▾</span>
+    </div>
+    <div class="api-body" id="api-body">
+      <div class="api-input-row">
+        <input class="tds-input-pw" type="password" id="apikey" placeholder="API 키 붙여넣기" />
+        <button class="btn btn-primary btn-sm" onclick="saveKey()">저장</button>
+      </div>
+      <div class="err-text" id="api-err"></div>
+      <div class="api-note">
+        <a href="https://developer-lostark.game.onstove.com/" target="_blank">개발자 포털</a>에서 로그인 후 발급할 수 있어요.<br>
+        저장된 키는 이 기기 브라우저에만 보관돼요.
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 현금화 환율 -->
+  <div class="list-header">현금화 환율</div>
+  <div class="card">
+    <div class="list-row">
+      <div class="list-row-contents">
+        <div class="list-row-top">100만 골드</div>
+      </div>
+      <div class="list-row-right">
+        <input class="tds-input w-md" type="number" id="rate" placeholder="0" min="0" step="100" oninput="save();calc()" />
+        <span class="input-unit">원</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 보유 골드 -->
+  <div class="list-header">보유 골드</div>
+  <div class="card">
+    <div class="list-row">
+      <div class="list-row-contents">
+        <div class="list-row-top">현재 보유량</div>
+      </div>
+      <div class="list-row-right">
+        <input class="tds-input w-lg" type="number" id="my-gold" placeholder="0" min="0" oninput="save();calc()" />
+        <span class="input-unit">G</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 보석 보유량 -->
+  <div class="list-header" style="display:flex;justify-content:space-between;align-items:center;padding-right:20px;">
+    <span>보석 보유량</span>
+    <button class="btn btn-primary-weak btn-sm" id="fetch-btn" onclick="fetchPrices()">
+      <span class="spin">↻</span> 시세 불러오기
+    </button>
+  </div>
+  <div class="card">
+    <!-- 컬럼 헤더 -->
+    <div class="col-header">
+      <span class="col-label">시세 (G)</span>
+      <span class="col-label">수량 (개)</span>
+    </div>
+    <!-- 10레벨 -->
+    <div class="list-row">
+      <div class="list-row-contents">
+        <div class="list-row-top"><span class="badge badge-orange">10레벨</span></div>
+      </div>
+      <div class="list-row-right">
+        <input class="tds-input w-sm" type="number" id="p10-input" placeholder="시세" min="0" oninput="save();calc()" />
+        <input class="tds-input w-sm" type="number" id="qty10" placeholder="0" min="0" oninput="save();calc()" />
+      </div>
+    </div>
+    <!-- 9레벨 -->
+    <div class="list-row">
+      <div class="list-row-contents">
+        <div class="list-row-top"><span class="badge badge-blue">9레벨</span></div>
+      </div>
+      <div class="list-row-right">
+        <input class="tds-input w-sm" type="number" id="p9-input" placeholder="시세" min="0" oninput="save();calc()" />
+        <input class="tds-input w-sm" type="number" id="qty9" placeholder="0" min="0" oninput="save();calc()" />
+      </div>
+    </div>
+    <!-- 8레벨 -->
+    <div class="list-row">
+      <div class="list-row-contents">
+        <div class="list-row-top"><span class="badge badge-green">8레벨</span></div>
+      </div>
+      <div class="list-row-right">
+        <input class="tds-input w-sm" type="number" id="p8-input" placeholder="시세" min="0" oninput="save();calc()" />
+        <input class="tds-input w-sm" type="number" id="qty8" placeholder="0" min="0" oninput="save();calc()" />
+      </div>
+    </div>
+    <!-- 7레벨 -->
+    <div class="list-row">
+      <div class="list-row-contents">
+        <div class="list-row-top"><span class="badge badge-grey">7레벨</span></div>
+      </div>
+      <div class="list-row-right">
+        <input class="tds-input w-sm" type="number" id="p7-input" placeholder="시세" min="0" oninput="save();calc()" />
+        <input class="tds-input w-sm" type="number" id="qty7" placeholder="0" min="0" oninput="save();calc()" />
+      </div>
+    </div>
+    <div class="err-text" id="fetch-err" style="padding:0 20px 16px;margin-top:0;"></div>
+  </div>
+
+  <!-- ⑤ 조회 아이템명 -->
+  <div class="list-header">경매장 검색어</div>
+  <div class="card">
+    <div class="list-row" style="flex-direction:column; align-items:stretch; gap:8px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge badge-orange" style="flex-shrink:0; width:48px; justify-content:center;">10레벨</span>
+        <input class="tds-input-text" type="text" id="name10" value="10레벨 겁화의 보석" oninput="save()" />
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge badge-blue" style="flex-shrink:0; width:48px; justify-content:center;">9레벨</span>
+        <input class="tds-input-text" type="text" id="name9" value="9레벨 겁화의 보석" oninput="save()" />
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge badge-green" style="flex-shrink:0; width:48px; justify-content:center;">8레벨</span>
+        <input class="tds-input-text" type="text" id="name8" value="8레벨 겁화의 보석" oninput="save()" />
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge badge-grey" style="flex-shrink:0; width:48px; justify-content:center;">7레벨</span>
+        <input class="tds-input-text" type="text" id="name7" value="7레벨 겁화의 보석" oninput="save()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ 계산 결과 -->
+  <div class="list-header">계산 결과</div>
+  <div class="card">
+    <div class="result-hero">
+      <div class="result-hero-label">현금화 시 수령액</div>
+      <div class="result-hero-amount dim" id="r-big">—</div>
+      <div class="result-hero-sub" id="r-sub">환율을 입력하면 계산돼요</div>
+    </div>
+    <div class="table-row">
+      <span class="tr-label">보유 골드</span>
+      <span class="tr-value primary" id="r-mygold">—</span>
+    </div>
+    <div class="table-row">
+      <span class="tr-label">보석 합산 (수수료 전)</span>
+      <span class="tr-value primary" id="r-gross">—</span>
+    </div>
+    <div class="table-row">
+      <span class="tr-label">경매장 수수료 5%</span>
+      <span class="tr-value red" id="r-fee">—</span>
+    </div>
+    <div class="table-row">
+      <span class="tr-label">보석 실수령 골드</span>
+      <span class="tr-value" id="r-net">—</span>
+    </div>
+    <div class="table-row">
+      <span class="tr-label">총 골드 합계</span>
+      <span class="tr-value primary" id="r-total">—</span>
+    </div>
+    <div class="table-row" style="padding: 18px 20px; background: var(--grey50);">
+      <span class="tr-label" style="font-size:var(--text-body2);font-weight:700;color:var(--grey900);">최종 현금</span>
+      <span class="tr-value green big" id="r-final">—</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 키 상수 ──────────────────────────────────────────────────
+const S_CFG    = 'loa_tds1';
+const S_APIKEY = 'loa_key';
+const S_PRICES = 'loa_prices_tds1';
+
+const ALL_IDS = ['rate','my-gold','qty10','qty9','qty8','qty7',
+                 'p10-input','p9-input','p8-input','p7-input',
+                 'name10','name9','name8','name7'];
+
+// ── 저장/불러오기 ────────────────────────────────────────────
+function save() {
+  const d = {};
+  ALL_IDS.forEach(k => { const el = document.getElementById(k); if(el) d[k] = el.value; });
+  localStorage.setItem(S_CFG, JSON.stringify(d));
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(S_CFG) || '{}');
+    ALL_IDS.forEach(k => {
+      const el = document.getElementById(k);
+      if (el && d[k] !== undefined) el.value = d[k];
+    });
+  } catch {}
+
+  const key = localStorage.getItem(S_APIKEY) || '';
+  if (key) { document.getElementById('apikey').value = key; setDot('ok','설정됨'); }
+
+  try {
+    const p = JSON.parse(localStorage.getItem(S_PRICES) || '{}');
+    [10,9,8,7].forEach(lv => { if (p[lv]) document.getElementById('p'+lv+'-input').value = p[lv]; });
+  } catch {}
+}
+
+// ── API 키 ───────────────────────────────────────────────────
+function toggleApi() {
+  const b = document.getElementById('api-body');
+  const c = document.getElementById('chev');
+  const open = b.classList.toggle('open');
+  c.classList.toggle('open', open);
+}
+function saveKey() {
+  const k = document.getElementById('apikey').value.trim();
+  if (!k) return;
+  localStorage.setItem(S_APIKEY, k);
+  setDot('ok','설정됨');
+  document.getElementById('api-body').classList.remove('open');
+  document.getElementById('chev').classList.remove('open');
+  showToast('API 키가 저장됐어요');
+}
+function setDot(cls, txt) {
+  document.getElementById('dot').className = 'status-dot ' + cls;
+  document.getElementById('api-sub').textContent = cls === 'ok'
+    ? txt + ' · developer-lostark.game.onstove.com'
+    : '미설정 · developer-lostark.game.onstove.com';
+}
+
+// ── 시세 불러오기 ────────────────────────────────────────────
+async function fetchPrices() {
+  const key = localStorage.getItem(S_APIKEY);
+  if (!key) {
+    showFetchErr('로아 API 키를 먼저 설정해주세요.');
+    return;
+  }
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true;
+  btn.classList.add('fetching');
+  btn.innerHTML = '<span class="spin">↻</span> 조회 중...';
+  hideFetchErr();
+
+  const levels = [10,9,8,7];
+  const prices = {};
+  const failed = [];
+
+  await Promise.all(levels.map(async lv => {
+    const itemName = document.getElementById('name'+lv).value.trim();
+    try {
+      const r = await fetch('https://developer-lostark.game.onstove.com/auctions/items', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'authorization': 'bearer ' + key,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          Sort: 'BUY_PRICE', CategoryCode: 210000,
+          ItemTier: 4, ItemGrade: '전설',
+          ItemName: itemName, PageNo: 1, SortCondition: 'ASC'
+        })
+      });
+      if (r.status === 401) throw new Error('API 키 인증 실패');
+      if (r.status === 429) throw new Error('요청 한도 초과, 잠시 후 재시도');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      const items = (data.Items||[]).filter(it => it.AuctionInfo?.BuyPrice > 0);
+      if (items.length > 0) {
+        prices[lv] = items[0].AuctionInfo.BuyPrice;
+        document.getElementById('p'+lv+'-input').value = prices[lv];
+      } else { failed.push(lv+'레벨 (매물 없음)'); }
+    } catch(e) { failed.push(lv+'레벨: '+e.message); }
+  }));
+
+  try {
+    const ex = JSON.parse(localStorage.getItem(S_PRICES)||'{}');
+    Object.assign(ex, prices); localStorage.setItem(S_PRICES, JSON.stringify(ex));
+  } catch {}
+
+  if (failed.length > 0) {
+    const isCors = failed.some(f => f.includes('Failed to fetch') || f.includes('NetworkError'));
+    if (isCors || failed.length === 4) {
+      showFetchErr('⚠️ CORS 오류: 로컬 파일(file://)에서는 API 호출이 제한돼요.\n\n해결 방법:\n터미널에서 npx serve . 실행 후 http://localhost:3000 접속');
+      setDot('err','오류');
+    } else {
+      showFetchErr('일부 실패: ' + failed.join(', '));
+      showToast('일부 시세를 불러왔어요');
+    }
+  } else {
+    showToast('시세를 불러왔어요 ✓');
+    setDot('ok','설정됨');
+  }
+  save(); calc();
+  btn.disabled = false;
+  btn.classList.remove('fetching');
+  btn.innerHTML = '<span class="spin">↻</span> 시세 불러오기';
+}
+
+function showFetchErr(msg) {
+  const el = document.getElementById('fetch-err');
+  el.textContent = msg; el.classList.add('show');
+}
+function hideFetchErr() {
+  document.getElementById('fetch-err').classList.remove('show');
+}
+
+// ── 계산 ─────────────────────────────────────────────────────
+function calc() {
+  const rate   = parseFloat(document.getElementById('rate').value) || 0;
+  const myGold = parseFloat(document.getElementById('my-gold').value) || 0;
+
+  let gross = 0;
+  [10,9,8,7].forEach(lv => {
+    const qty   = parseFloat(document.getElementById('qty'+lv).value) || 0;
+    const price = parseFloat(document.getElementById('p'+lv+'-input').value) || 0;
+    gross += qty * price;
+  });
+
+  const fee   = gross * 0.05;
+  const net   = gross - fee;
+  const total = myGold + net;
+  const won   = total * (rate / 1000000);
+
+  set('r-mygold', myGold ? fmt(myGold)+'G' : '—');
+  set('r-gross',  gross  ? fmt(gross)+'G'  : '—');
+  set('r-fee',    fee    ? '-'+fmt(fee)+'G' : '—');
+  set('r-net',    net    ? fmt(net)+'G'    : '—');
+  set('r-total',  total  ? fmt(total)+'G'  : '—');
+
+  const bigEl = document.getElementById('r-big');
+  const subEl = document.getElementById('r-sub');
+  const finEl = document.getElementById('r-final');
+
+  if (!rate) {
+    bigEl.textContent = '—'; bigEl.className = 'result-hero-amount dim';
+    subEl.textContent = '환율(100만G = N원)을 입력하면 계산돼요';
+    finEl.textContent = '—'; return;
+  }
+  bigEl.textContent = '₩' + fmt(won); bigEl.className = 'result-hero-amount';
+  subEl.textContent = fmt(total)+'G × '+fmt(rate)+'원 / 100만G';
+  finEl.textContent = '₩' + fmt(won);
+}
+
+function set(id, v) { document.getElementById(id).textContent = v; }
+function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+
+// ── Toast ─────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+window.onload = () => { load(); calc(); };
+</script>
+</body>
+</html>
